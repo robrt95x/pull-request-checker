@@ -24,14 +24,18 @@ get_git_diff() {
         return 1
     fi
     
-    # Check if target branch exists
-    if ! git rev-parse --verify "$target_branch" > /dev/null 2>&1; then
-        log_error "Target branch '$target_branch' does not exist"
+    # Check if target branch exists (try local first, then origin/)
+    if git rev-parse --verify "$target_branch" > /dev/null 2>&1; then
+        local ref="$target_branch"
+    elif git rev-parse --verify "origin/$target_branch" > /dev/null 2>&1; then
+        local ref="origin/$target_branch"
+    else
+        log_error "Target branch '$target_branch' does not exist locally or on origin"
         return 1
     fi
     
     # Get the diff with context lines
-    git diff -U"$context_lines" "$target_branch"...HEAD
+    git diff -U"$context_lines" "$ref"...HEAD
 }
 
 # Get list of modified files
@@ -40,7 +44,17 @@ get_modified_files() {
     
     log_debug "Getting modified files against branch: $target_branch"
     
-    git diff --name-only "$target_branch"...HEAD
+    # Check if target branch exists (try local first, then origin/)
+    if git rev-parse --verify "$target_branch" > /dev/null 2>&1; then
+        local ref="$target_branch"
+    elif git rev-parse --verify "origin/$target_branch" > /dev/null 2>&1; then
+        local ref="origin/$target_branch"
+    else
+        log_error "Target branch '$target_branch' does not exist locally or on origin"
+        return 1
+    fi
+    
+    git diff --name-only "$ref"...HEAD
 }
 
 # Get commit messages for the PR
@@ -49,7 +63,17 @@ get_commit_messages() {
     
     log_debug "Getting commit messages against branch: $target_branch"
     
-    git log --oneline "$target_branch"...HEAD
+    # Check if target branch exists (try local first, then origin/)
+    if git rev-parse --verify "$target_branch" > /dev/null 2>&1; then
+        local ref="$target_branch"
+    elif git rev-parse --verify "origin/$target_branch" > /dev/null 2>&1; then
+        local ref="origin/$target_branch"
+    else
+        log_error "Target branch '$target_branch' does not exist locally or on origin"
+        return 1
+    fi
+    
+    git log --oneline "$ref"...HEAD
 }
 
 # =============================================================================
