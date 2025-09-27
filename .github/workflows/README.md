@@ -2,31 +2,10 @@
 
 Este directorio contiene los workflows de GitHub Actions para automatizar las revisiones de Pull Requests.
 
-## 📁 Workflows Disponibles
+### Workflows Disponibles
 
-### 1. `pr-review.yml` - Revisión Automática de PRs
-
-**Trigger:** Se ejecuta automáticamente cuando:
-- Se abre un nuevo PR
-- Se actualiza un PR existente (nuevos commits)
-- Se reabre un PR cerrado
-
-**Funcionalidades:**
-- ✅ Análisis automático del código usando Claude AI
-- ✅ Generación de reporte detallado
-- ✅ Comentario automático en el PR
-- ✅ Status check en el commit
-- ✅ Almacenamiento de reportes como artifacts
-
-### 2. `setup-test.yml` - Setup y Testing
-
-**Trigger:** Ejecución manual desde la pestaña Actions
-
-**Funcionalidades:**
-- ✅ Validación de la configuración del sistema
-- ✅ Creación de escenarios de prueba
-- ✅ Ejecución de revisiones de prueba
-- ✅ Generación de reportes de test
+- **🔍 PR Review** - Revisión automática en cada PR
+- **🔄 Manual Review** - Revisión manual bajo demanda
 
 ## 🔧 Configuración Requerida
 

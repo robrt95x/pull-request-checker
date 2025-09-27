@@ -26,6 +26,11 @@ pull-request-reviewer/
 │   ├── templates/             # Templates para reportes
 │   │   └── report-template.md
 │   └── output/                # Reportes generados
+├── .github/                   # GitHub Actions workflows
+│   ├── workflows/             # Workflows de CI/CD
+│   │   ├── pr-review.yml      # Revisión automática
+│   │   └── manual-review.yml  # Revisión manual
+│   └── SETUP.md              # Guía de configuración
 └── test-application/          # Aplicación de prueba
 ```
 
@@ -186,27 +191,31 @@ OUTPUT_FORMAT="markdown"
 
 ```bash
 # Ir a la aplicación de prueba
-cd ../test-application
+cd test-application
 
-# Hacer algunos cambios
+# Hacer algunos cambios manualmente
 echo "// Test comment" >> src/app/page.tsx
 
 # Commit los cambios
 git add .
 git commit -m "Test changes for PR review"
 
-# Ejecutar revisión
+# Ejecutar revisión manual
 cd ../scripts
 ./review.sh --debug
 ```
 
 ### Casos de Prueba Recomendados
 
+Para probar diferentes escenarios, puedes crear manualmente:
+
 1. **Sin cambios**: Verificar que maneja repos limpios
-2. **Cambios menores**: Archivos CSS, documentación
-3. **Cambios mayores**: Lógica de negocio, APIs
-4. **Problemas de seguridad**: Credentials hardcodeadas
-5. **Performance**: Queries ineficientes, memory leaks
+2. **Cambios menores**: Modificar archivos CSS o documentación
+3. **Cambios mayores**: Actualizar lógica de negocio o APIs  
+4. **Problemas de seguridad**: Agregar credentials hardcodeadas temporalmente
+5. **Performance**: Crear queries ineficientes o memory leaks
+
+Recuerda hacer commit de los cambios antes de ejecutar `./review.sh`
 
 ## 📁 Estructura de Reportes
 

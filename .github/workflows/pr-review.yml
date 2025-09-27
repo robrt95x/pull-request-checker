@@ -50,7 +50,7 @@ jobs:
           cd scripts
           
           # Make scripts executable
-          chmod +x review.sh utils.sh create-test-scenario.sh quick-start.sh
+          chmod +x review.sh utils.sh
           
           # Set environment variables for the review
           export PROJECT_NAME="${{ github.repository }}"
