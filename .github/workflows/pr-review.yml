@@ -47,10 +47,8 @@ jobs:
       - name: 🔍 Run PR Review Analysis
         id: review
         run: |
-          cd scripts
-          
           # Make scripts executable
-          chmod +x review.sh utils.sh
+          chmod +x scripts/review.sh scripts/utils.sh
           
           # Set environment variables for the review
           export PROJECT_NAME="${{ github.repository }}"
@@ -65,15 +63,15 @@ jobs:
           # Create output filename with PR number
           output_file="pr_review_${{ steps.pr-info.outputs.pr_number }}_$(date +%Y%m%d_%H%M%S).md"
           
-          if ./review.sh --branch "${{ steps.pr-info.outputs.base_branch }}" --output "$output_file"; then
+          if scripts/review.sh --branch "${{ steps.pr-info.outputs.base_branch }}" --output "$output_file"; then
             echo "review_success=true" >> $GITHUB_OUTPUT
-            echo "review_file=output/$output_file" >> $GITHUB_OUTPUT
+            echo "review_file=scripts/output/$output_file" >> $GITHUB_OUTPUT
             
             # Extract key metrics from the report for the summary
-            if [ -f "output/$output_file" ]; then
+            if [ -f "scripts/output/$output_file" ]; then
               # Try to extract the final score (this is a simple approach)
-              final_score=$(grep -o "Puntuación Final: [0-9.]*" "output/$output_file" | head -1 | grep -o "[0-9.]*" || echo "N/A")
-              status=$(grep -o "Estado\*\*: [A-Z ]*" "output/$output_file" | head -1 | cut -d':' -f2 | xargs || echo "N/A")
+              final_score=$(grep -o "Puntuación Final: [0-9.]*" "scripts/output/$output_file" | head -1 | grep -o "[0-9.]*" || echo "N/A")
+              status=$(grep -o "Estado\*\*: [A-Z ]*" "scripts/output/$output_file" | head -1 | cut -d':' -f2 | xargs || echo "N/A")
               
               echo "final_score=$final_score" >> $GITHUB_OUTPUT
               echo "review_status=$status" >> $GITHUB_OUTPUT

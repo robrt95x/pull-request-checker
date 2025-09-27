@@ -21,7 +21,7 @@
 set -euo pipefail
 
 # Source configuration and utilities
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
 source "$SCRIPT_DIR/config/config.sh"
 source "$SCRIPT_DIR/utils.sh"
 

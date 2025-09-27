@@ -10,7 +10,9 @@ CLAUDE_MODEL="claude-3-5-sonnet-20241022"
 CLAUDE_API_URL="https://api.anthropic.com/v1/messages"
 
 # Paths Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -z "${SCRIPT_DIR:-}" ]]; then
+    SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+fi
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 RUBRICS_DIR="$SCRIPT_DIR/rubrics"
 TEMPLATES_DIR="$SCRIPT_DIR/templates"

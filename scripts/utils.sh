@@ -5,7 +5,8 @@
 # =============================================================================
 
 # Source configuration
-source "$(dirname "${BASH_SOURCE[0]}")/config/config.sh"
+SCRIPT_DIR="$(dirname "$(realpath "${BASH_SOURCE[0]}")")"
+source "$SCRIPT_DIR/config/config.sh"
 
 # =============================================================================
 # GIT UTILITIES
