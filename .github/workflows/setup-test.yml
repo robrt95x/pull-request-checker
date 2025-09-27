@@ -1,0 +1,124 @@
+name: 🔧 Setup PR Reviewer
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_scenario:
+        description: 'Scenario de prueba a ejecutar'
+        required: false
+        default: 'clean'
+        type: choice
+        options:
+          - clean
+          - security_issues
+          - performance_issues
+          - poor_quality
+          - no_tests
+
+env:
+  CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+
+jobs:
+  setup-and-test:
+    name: 🧪 Setup and Test PR Reviewer
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: 🚀 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔧 Setup dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl git
+
+      - name: ✅ Validate PR Reviewer Setup
+        run: |
+          echo "🔍 Validating PR Reviewer setup..."
+          
+          cd scripts
+          chmod +x *.sh
+          
+          # Check if all required files exist
+          required_files=(
+            "review.sh"
+            "utils.sh"
+            "config/config.sh"
+            "rubrics/code-review-rubric.md"
+            "templates/report-template.md"
+          )
+          
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ Found: $file"
+            else
+              echo "❌ Missing: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All required files are present"
+
+      - name: 🧪 Create test scenario
+        if: github.event.inputs.test_scenario != ''
+        run: |
+          cd scripts
+          echo "🧪 Creating test scenario: ${{ github.event.inputs.test_scenario }}"
+          
+          # Initialize git in test-application if not already done
+          cd ../test-application
+          if [ ! -d ".git" ]; then
+            git init
+            git config user.name "GitHub Action"
+            git config user.email "action@github.com"
+            git add .
+            git commit -m "Initial test application setup"
+          fi
+          
+          cd ../scripts
+          ./create-test-scenario.sh ${{ github.event.inputs.test_scenario }}
+
+      - name: 🔍 Run test review
+        run: |
+          cd scripts
+          echo "🔍 Running test review..."
+          
+          # Set test environment variables
+          export PROJECT_NAME="${{ github.repository }}"
+          export PR_NUMBER="TEST"
+          export PR_TITLE="Test Review - ${{ github.event.inputs.test_scenario }}"
+          export PR_AUTHOR="github-actions"
+          
+          if ./review.sh --debug --output "test_review_$(date +%Y%m%d_%H%M%S).md"; then
+            echo "✅ Test review completed successfully"
+          else
+            echo "❌ Test review failed"
+            exit 1
+          fi
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-review-results-${{ github.run_number }}
+          path: |
+            scripts/output/*.md
+          retention-days: 7
+
+      - name: 📋 Test Summary
+        run: |
+          echo "## 🧪 PR Reviewer Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Scenario:** ${{ github.event.inputs.test_scenario }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Test completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📁 Generated Files" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          ls -la scripts/output/ >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

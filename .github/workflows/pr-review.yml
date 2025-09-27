@@ -1,0 +1,248 @@
+name: 🔍 PR Reviewer - Automated Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, master, develop]
+
+env:
+  CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+
+jobs:
+  pr-review:
+    name: 📋 Automated PR Review
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: 🚀 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history to enable diff comparison
+          fetch-depth: 0
+          # Get the PR branch
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: 🔧 Setup dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq curl git
+
+      - name: 📊 Get PR information
+        id: pr-info
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+          echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+          echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+          echo "base_branch=${{ github.event.pull_request.base.ref }}" >> $GITHUB_OUTPUT
+          echo "head_branch=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+          echo "pr_url=${{ github.event.pull_request.html_url }}" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Run PR Review Analysis
+        id: review
+        run: |
+          cd scripts
+          
+          # Make scripts executable
+          chmod +x review.sh utils.sh create-test-scenario.sh quick-start.sh
+          
+          # Set environment variables for the review
+          export PROJECT_NAME="${{ github.repository }}"
+          export PR_NUMBER="${{ steps.pr-info.outputs.pr_number }}"
+          export PR_TITLE="${{ steps.pr-info.outputs.pr_title }}"
+          export PR_AUTHOR="${{ steps.pr-info.outputs.pr_author }}"
+          export PR_URL="${{ steps.pr-info.outputs.pr_url }}"
+          
+          # Run the review against the base branch
+          echo "🔍 Running automated PR review..."
+          
+          # Create output filename with PR number
+          output_file="pr_review_${{ steps.pr-info.outputs.pr_number }}_$(date +%Y%m%d_%H%M%S).md"
+          
+          if ./review.sh --branch "${{ steps.pr-info.outputs.base_branch }}" --output "$output_file"; then
+            echo "review_success=true" >> $GITHUB_OUTPUT
+            echo "review_file=output/$output_file" >> $GITHUB_OUTPUT
+            
+            # Extract key metrics from the report for the summary
+            if [ -f "output/$output_file" ]; then
+              # Try to extract the final score (this is a simple approach)
+              final_score=$(grep -o "Puntuación Final: [0-9.]*" "output/$output_file" | head -1 | grep -o "[0-9.]*" || echo "N/A")
+              status=$(grep -o "Estado\*\*: [A-Z ]*" "output/$output_file" | head -1 | cut -d':' -f2 | xargs || echo "N/A")
+              
+              echo "final_score=$final_score" >> $GITHUB_OUTPUT
+              echo "review_status=$status" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "review_success=false" >> $GITHUB_OUTPUT
+            echo "❌ Review analysis failed"
+            exit 1
+          fi
+
+      - name: 📝 Post Review Comment
+        if: steps.review.outputs.review_success == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            try {
+              // Read the review report
+              const reviewFile = '${{ steps.review.outputs.review_file }}';
+              const reportContent = fs.readFileSync(reviewFile, 'utf8');
+              
+              // Extract summary for comment preview
+              const finalScore = '${{ steps.review.outputs.final_score }}';
+              const reviewStatus = '${{ steps.review.outputs.review_status }}';
+              
+              // Determine status emoji
+              let statusEmoji = '❓';
+              if (reviewStatus.includes('EXCELENTE')) statusEmoji = '🌟';
+              else if (reviewStatus.includes('APROBADO')) statusEmoji = '✅';
+              else if (reviewStatus.includes('REQUIERE CAMBIOS')) statusEmoji = '⚠️';
+              else if (reviewStatus.includes('RECHAZADO')) statusEmoji = '❌';
+              
+              // Create comment with summary and collapsible full report
+              const comment = `## ${statusEmoji} Revisión Automática de PR #${{ steps.pr-info.outputs.pr_number }}
+              
+              **Puntuación Final:** ${finalScore}/10
+              **Estado:** ${reviewStatus}
+              
+              ---
+              
+              <details>
+              <summary>📋 Ver Reporte Completo de Revisión</summary>
+              
+              ${reportContent}
+              
+              </details>
+              
+              ---
+              
+              *🤖 Reporte generado automáticamente por [PR Reviewer](https://github.com/${{ github.repository }}) el ${new Date().toLocaleString('es-ES', { 
+                timeZone: 'America/Mexico_City',
+                year: 'numeric',
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}*
+              
+              *¿Tienes preguntas sobre este reporte? Consulta la [documentación](https://github.com/${{ github.repository }}/blob/main/README.md) del proyecto.*`;
+              
+              // Post comment on PR
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ steps.pr-info.outputs.pr_number }},
+                body: comment
+              });
+              
+              console.log('✅ Review comment posted successfully');
+              
+            } catch (error) {
+              console.error('❌ Error posting review comment:', error);
+              
+              // Post a simple error comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: ${{ steps.pr-info.outputs.pr_number }},
+                body: `## ⚠️ Error en Revisión Automática
+                
+                Hubo un problema al generar el reporte de revisión automática.
+                
+                **Error:** ${error.message}
+                
+                Por favor, ejecuta la revisión manualmente con:
+                \`\`\`bash
+                cd scripts
+                ./review.sh --branch ${{ steps.pr-info.outputs.base_branch }}
+                \`\`\`
+                
+                *🤖 Mensaje generado por PR Reviewer Automation*`
+              });
+            }
+
+      - name: 🎯 Set PR Status Check
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const reviewSuccess = '${{ steps.review.outputs.review_success }}';
+            const finalScore = '${{ steps.review.outputs.final_score }}';
+            const reviewStatus = '${{ steps.review.outputs.review_status }}';
+            
+            let state = 'pending';
+            let description = 'Revisión en progreso...';
+            
+            if (reviewSuccess === 'true') {
+              const score = parseFloat(finalScore);
+              
+              if (score >= 9) {
+                state = 'success';
+                description = `Excelente (${finalScore}/10) - Listo para merge`;
+              } else if (score >= 7) {
+                state = 'success';
+                description = `Aprobado (${finalScore}/10) - Cambios menores opcionales`;
+              } else if (score >= 5) {
+                state = 'failure';
+                description = `Requiere cambios (${finalScore}/10) - Revisar comentarios`;
+              } else {
+                state = 'failure';
+                description = `Rechazado (${finalScore}/10) - Refactorización necesaria`;
+              }
+            } else {
+              state = 'error';
+              description = 'Error en análisis automático - Revisar manualmente';
+            }
+            
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: '${{ github.event.pull_request.head.sha }}',
+              state: state,
+              description: description,
+              context: 'pr-reviewer/automated-review'
+            });
+
+      - name: 📁 Upload Review Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-review-${{ steps.pr-info.outputs.pr_number }}-${{ github.run_number }}
+          path: |
+            scripts/output/*.md
+          retention-days: 30
+
+      - name: 📊 Job Summary
+        if: always()
+        run: |
+          echo "## 🔍 PR Review Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR:** #${{ steps.pr-info.outputs.pr_number }} - ${{ steps.pr-info.outputs.pr_title }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Author:** @${{ steps.pr-info.outputs.pr_author }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Base Branch:** ${{ steps.pr-info.outputs.base_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Review Success:** ${{ steps.review.outputs.review_success }}" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ steps.review.outputs.review_success }}" = "true" ]; then
+            echo "- **Final Score:** ${{ steps.review.outputs.final_score }}/10" >> $GITHUB_STEP_SUMMARY
+            echo "- **Status:** ${{ steps.review.outputs.review_status }}" >> $GITHUB_STEP_SUMMARY
+            echo "- **Report File:** ${{ steps.review.outputs.review_file }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Actions Taken" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Analyzed code changes" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Generated detailed review report" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Posted review comment on PR" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Set commit status check" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Uploaded report as artifact" >> $GITHUB_STEP_SUMMARY
