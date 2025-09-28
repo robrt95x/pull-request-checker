@@ -129,20 +129,54 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            Please conduct a thorough code review of this pull request using the detailed rubric provided in your system prompt (CLAUDE.md).
+            You are conducting a code review for PR #${{ steps.pr-info.outputs.pr_number }} in repository ${{ github.repository }}.
             
-            📊 Available data:
-            - Use: gh pr diff ${{ steps.pr-info.outputs.pr_number }} (to get the complete diff)
-            - Use: gh pr view ${{ steps.pr-info.outputs.pr_number }} (for PR metadata)
-            - Files pr_diff.txt and pr_details.json may be available in working directory
+            🎯 YOUR TASKS (complete ALL in order):
             
-            Follow the CLAUDE.md format exactly:
-            - Start with "## 📊 Code Review Summary"
-            - Include "Final Score: X/10" 
-            - Include "Status: [APPROVED/REQUIRES CHANGES/NEEDS MAJOR REVISION]"
-            - Provide category scores and analysis
-            - Apply Alert Signal deductions as specified
-            - Give actionable recommendations
+            1. **GET PR DATA** - Run these commands FIRST:
+               - gh pr diff ${{ steps.pr-info.outputs.pr_number }}
+               - gh pr view ${{ steps.pr-info.outputs.pr_number }}
+            
+            2. **ANALYZE THE CODE** using CLAUDE.md rubric:
+               - Code Quality (25%): Check readability, naming, DRY principle
+               - Architecture (20%): Check separation of concerns, modularity  
+               - Security (20%): Look for vulnerabilities, input validation
+               - Testing (15%): Check test coverage and quality
+               - Documentation (10%): Check comments and docs
+               - Performance (10%): Check efficiency and memory usage
+            
+            3. **CALCULATE SCORES**:
+               - Score each category 1-10
+               - Apply weighted average
+               - Deduct points for Alert Signals (eval usage: -8pts, memory leaks: -5pts, etc.)
+               - Add bonus points if applicable
+            
+            4. **POST REVIEW** using this EXACT format:
+            ```
+            ## 📊 Code Review Summary
+            
+            **Final Score: X.X/10**
+            **Status: [APPROVED/REQUIRES CHANGES/NEEDS MAJOR REVISION]**
+            
+            ### Category Scores
+            - 🔧 Code Quality: X/10 (Weight: 25%)
+            - 🏗️ Architecture: X/10 (Weight: 20%)
+            - 🔒 Security: X/10 (Weight: 20%)
+            - 🧪 Testing: X/10 (Weight: 15%)
+            - 📚 Documentation: X/10 (Weight: 10%)
+            - ⚡ Performance: X/10 (Weight: 10%)
+            
+            ### Critical Issues Found
+            - [List any critical problems]
+            
+            ### Recommendations
+            1. [Specific actionable recommendation]
+            2. [Another specific recommendation]
+            ```
+            
+            5. **ADD INLINE COMMENTS** for specific code issues using the GitHub inline comment tool
+            
+            ⚠️ CRITICAL: You MUST follow this exact process and format. Do not deviate from the structure above.
             
             Focus on the evaluation categories specified in CLAUDE.md:
             1. Code Quality (25% weight)
@@ -152,24 +186,60 @@ jobs:
             5. Documentation (10% weight)
             6. Performance (10% weight)
             
-            Also check for Alert Signals that require point deductions and any Bonuses that should be awarded.
-            
-            IMPORTANT: Follow the exact response format specified in CLAUDE.md:
-            - Start with "## 📊 Code Review Summary"
-            - Include "Final Score: X/10" 
-            - Include "Status: [APPROVED/REQUIRES CHANGES/NEEDS MAJOR REVISION]"
-            - Provide category scores with detailed analysis
-            - List critical issues if any
-            - Give specific actionable recommendations
-            
-            Use inline comments for specific code issues and post your comprehensive review summary as a top-level PR comment.
-            
-            The PR branch is already checked out in the current working directory.
+            Remember to check for Alert Signals and apply appropriate deductions.
           claude_args: |
-            --max-turns 10
+            --max-turns 15
             --model claude-3-5-sonnet-20241022
             --system-prompt-file CLAUDE.md
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Write,Edit"
+            
+      - name: Validate Review Format
+        id: validate-review
+        run: |
+          echo "🔍 Validating review format..."
+          
+          REVIEW_RESPONSE="${{ steps.claude-review.outputs.response }}"
+          
+          # Check for required sections
+          MISSING_SECTIONS=()
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "## 📊 Code Review Summary" ]]; then
+            MISSING_SECTIONS+=("Code Review Summary header")
+          fi
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "Final Score:" ]]; then
+            MISSING_SECTIONS+=("Final Score")
+          fi
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "Status:" ]]; then
+            MISSING_SECTIONS+=("Status")
+          fi
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "Category Scores" ]]; then
+            MISSING_SECTIONS+=("Category Scores")
+          fi
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "🔧 Code Quality:" ]]; then
+            MISSING_SECTIONS+=("Code Quality score")
+          fi
+          
+          if [[ ! "$REVIEW_RESPONSE" =~ "🔒 Security:" ]]; then
+            MISSING_SECTIONS+=("Security score")
+          fi
+          
+          if [ ${#MISSING_SECTIONS[@]} -eq 0 ]; then
+            echo "✅ Review format validation passed"
+            echo "format_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Review format validation failed"
+            echo "Missing sections: ${MISSING_SECTIONS[*]}"
+            echo "format_valid=false" >> $GITHUB_OUTPUT
+            
+            # Show first 500 characters for debugging
+            echo "Review preview:"
+            echo "$REVIEW_RESPONSE" | head -c 500
+            echo "..."
+          fi
             
       - name: Save Review as Artifact
         uses: actions/upload-artifact@v4
