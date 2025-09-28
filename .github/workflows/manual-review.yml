@@ -37,10 +37,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: 🔧 Setup dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq curl git
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
 
       - name: 📊 Get PR information
         id: pr-info
@@ -61,14 +65,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: 🏗️ Build TypeScript
+        run: npm run build
+
       - name: 🔍 Run Manual PR Review
         id: review
         run: |
-          cd scripts
-          
-          # Make scripts executable
-          chmod +x *.sh
-          
           # Set environment variables
           export PROJECT_NAME="${{ github.repository }}"
           export PR_NUMBER="${{ github.event.inputs.pr_number }}"
@@ -84,7 +86,7 @@ jobs:
           echo "- Rubric: ${{ github.event.inputs.rubric }}"
           echo "- Base branch: ${{ github.event.inputs.base_branch }}"
           
-          if ./review.sh \
+          if npm run start -- \
             --branch "${{ github.event.inputs.base_branch }}" \
             --rubric "${{ github.event.inputs.rubric }}" \
             --output "$output_file" \
@@ -182,7 +184,7 @@ jobs:
         with:
           name: manual-pr-review-${{ github.event.inputs.pr_number }}-${{ github.run_number }}
           path: |
-            scripts/output/*.md
+            output/*.md
           retention-days: 30
 
       - name: 📊 Manual Review Summary

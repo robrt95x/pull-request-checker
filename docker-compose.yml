@@ -1,0 +1,18 @@
+# Docker Compose for local development and testing
+version: '3.8'
+
+services:
+  pr-reviewer:
+    build: .
+    environment:
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
+      - DEBUG_MODE=true
+      - VERBOSE=true
+    volumes:
+      # Mount config and output directories
+      - ./config:/app/config:ro
+      - ./output:/app/output
+      # Mount local .git directory for git operations
+      - ./.git:/app/.git:ro
+    working_dir: /app
+    command: npm run dev
