@@ -1,335 +1,261 @@
-# 🔍 PR Reviewer - Sistema de Revisión Automática de Pull Requests
+# 🔍 Pull Request Reviewer with Claude Code
 
-Un sistema completo para revisar automáticamente Pull Requests usando Claude AI, basado en rúbricas personalizables y que genera reportes detallados de feedback.
+Advanced automated code review system using Claude Code GitHub Actions to analyze pull requests and provide detailed feedback based on customizable rubrics.
 
-## 🚀 Características
+> **🚀 NEW**: Now fully integrated with Claude Code GitHub Actions!
 
-- **Análisis automatizado** de Pull Requests con Claude AI
-- **Rúbricas personalizables** para diferentes tipos de proyectos
-- **Reportes detallados** en formato Markdown
-- **Sistema de puntuación** ponderado por categorías
-- **Detección de problemas** de seguridad, performance y calidad
-- **Integración con Git** para análisis de diffs
-- **Templates customizables** para reportes
+## 🌟 Features
 
-## 📋 Estructura del Proyecto
+- **🤖 Automatic Reviews**: Runs automatically on every PR using Claude Code
+- **💬 Interactive**: Respond to `@claude` mentions for instant help  
+- **📊 Structured Scoring**: Detailed rubric-based analysis (1-10 scale)
+- **🔒 Security Focus**: Specialized security vulnerability detection
+- **⚡ Performance Analysis**: Code performance and optimization suggestions  
+- **📚 Documentation Checks**: Ensures proper code documentation
+- **🏗️ Architecture Review**: Evaluates design patterns and structure
+- **🧪 Testing Coverage**: Analyzes test quality and coverage
+- **📄 Report Generation**: Automatically generates detailed review artifacts
+
+## 🚀 Quick Setup
+
+### 1. Install Claude Code App
+```bash
+# Install the Claude GitHub App to your repository
+# Visit: https://github.com/apps/claude-code
+# Click "Configure" and select your repository
+```
+
+### 2. Add API Key to Secrets
+```bash
+# In your GitHub repository:
+# 1. Go to Settings → Secrets and variables → Actions
+# 2. Click "New repository secret"
+# 3. Name: ANTHROPIC_API_KEY
+# 4. Value: your-claude-api-key
+```
+
+### 3. That's it! 🎉
+- Create or update any Pull Request
+- Claude automatically analyzes and comments with detailed review
+- Get instant feedback with scores and actionable recommendations
+
+## 📋 How It Works
+
+1. **Automatic Trigger**: When you open/update a PR, Claude Code automatically runs
+2. **Rubric-Based Analysis**: Analyzes code using the detailed rubric in `CLAUDE.md`
+3. **Detailed Feedback**: Provides scores (1-10) across 6 categories:
+   - 🔧 Code Quality (25% weight)
+   - 🏗️ Architecture & Design (20% weight) 
+   - 🔒 Security (20% weight)
+   - 🧪 Testing (15% weight)
+   - 📚 Documentation (10% weight)
+   - ⚡ Performance (10% weight)
+4. **Actionable Reports**: Generates comprehensive reports as artifacts
+5. **Line-by-Line Comments**: Provides specific feedback on problematic code sections
+
+## 🎯 Interactive Commands
+
+Comment on any PR to trigger specific analyses:
 
 ```
-pull-request-reviewer/
-├── scripts/                    # Scripts principales
-│   ├── review.sh              # Script principal de revisión
-│   ├── utils.sh               # Funciones utilitarias
-│   ├── config/                # Configuraciones
-│   │   └── config.sh          # Configuración principal
-│   ├── rubrics/               # Rúbricas de evaluación
+@claude /review
+```
+→ Complete code review with detailed scoring
+
+```
+@claude /security  
+```
+→ Focus specifically on security analysis
+
+```
+@claude /performance
+```
+→ Analyze performance bottlenecks and optimizations
+
+```
+@claude /fix [issue]
+```
+→ Get suggestions to fix specific issues
+
+## ⚙️ Configuration
+
+The review rubric and scoring system is defined in [`CLAUDE.md`](CLAUDE.md). You can customize:
+
+- **Scoring thresholds** (minimum score to approve: 7/10)
+- **Category weights** (Code Quality: 25%, Security: 20%, etc.)
+- **Alert signals** (automatic deductions for security issues)
+- **Bonus criteria** (extra points for excellence)
+
+## 📊 Review Output
+
+Each review includes:
+
+```markdown
+## 📊 Code Review Summary
+**Final Score: 8.2/10**
+**Status: APPROVED**
+
+### Category Scores
+- 🔧 Code Quality: 8/10 (Weight: 25%)
+- 🏗️ Architecture: 9/10 (Weight: 20%)
+- 🔒 Security: 7/10 (Weight: 20%)
+- 🧪 Testing: 8/10 (Weight: 15%)
+- 📚 Documentation: 9/10 (Weight: 10%)
+- ⚡ Performance: 8/10 (Weight: 10%)
+
+## 📁 File Analysis
+**src/api/users.js**: 7/10 - Good structure, needs input validation
+**src/utils/helpers.js**: 9/10 - Excellent utility functions
+```
+
+## 🔄 Migration from Custom Code
+
+This project has been simplified from a custom TypeScript implementation to use Claude Code:
+
+- ✅ **Simpler setup**: No more complex builds or deployments
+- ✅ **Better integration**: Native GitHub integration with line comments
+- ✅ **Auto-updates**: Claude Code stays updated automatically
+- ✅ **Enhanced features**: Better diff analysis and artifact generation
+
+## 📄 Files Structure
+
+```
+├── .github/workflows/
+│   └── claude-review.yml     # Main workflow file
+├── config/
+│   ├── rubrics/
 │   │   └── code-review-rubric.md
-│   ├── templates/             # Templates para reportes
-│   │   └── report-template.md
-│   └── output/                # Reportes generados
-└── test-application/          # Aplicación de prueba
+│   └── templates/
+│       └── report-template.md
+├── CLAUDE.md                 # Main configuration & rubric
+└── README.md                 # This file
 ```
 
-## 🛠️ Instalación y Configuración
+## 🤝 Contributing
 
-### Prerrequisitos
+1. Fork the repository
+2. Make changes to the rubric in `CLAUDE.md` or workflow configuration
+3. Test with a sample PR
+4. Submit a pull request
 
-- **Bash** (compatible con macOS/Linux)
-- **Git** 
-- **curl**
-- **jq** (para procesamiento JSON)
-- **Claude API Key** (de Anthropic)
+## 📄 License
 
-### Instalación de dependencias
-
-```bash
-# macOS (usando Homebrew)
-brew install jq
-
-# Linux (Ubuntu/Debian)
-sudo apt-get install jq curl git
-
-# Linux (CentOS/RHEL)
-sudo yum install jq curl git
-```
-
-### Configuración de API Key
-
-```bash
-# Exportar la clave de API de Claude
-export CLAUDE_API_KEY="tu-clave-api-aqui"
-
-# O agregar al archivo ~/.bashrc o ~/.zshrc para uso permanente
-echo 'export CLAUDE_API_KEY="tu-clave-api-aqui"' >> ~/.bashrc
-```
-
-## 📖 Uso del Sistema
-
-### Uso Básico
-
-```bash
-# Revisar cambios contra la branch main
-cd scripts
-./review.sh
-
-# Revisar con opciones específicas
-./review.sh --branch develop --rubric frontend-rubric.md --output my-review.md
-```
-
-### Opciones Disponibles
-
-```bash
-./review.sh [opciones]
-
-Opciones:
-  -b, --branch BRANCH     Branch objetivo (default: main)
-  -r, --rubric RUBRIC     Archivo de rúbrica a usar
-  -o, --output OUTPUT     Archivo de salida personalizado
-  -d, --debug             Modo debug
-  -v, --verbose           Modo verbose
-  -h, --help              Mostrar ayuda
-```
-
-### Ejemplos de Uso
-
-```bash
-# Revisión básica contra main
-./review.sh
-
-# Revisión contra develop con modo debug
-./review.sh --branch develop --debug
-
-# Revisión con rúbrica personalizada
-./review.sh --rubric frontend-rubric.md --output frontend-review.md
-
-# Revisión verbose para troubleshooting
-./review.sh --verbose --debug
-```
-
-## 📊 Sistema de Puntuación
-
-### Categorías Evaluadas
-
-| Categoría | Peso | Descripción |
-|-----------|------|-------------|
-| 🔧 Calidad de Código | 25% | Limpieza, estructura, nomenclatura |
-| 🏗️ Arquitectura y Diseño | 20% | Patrones, modularidad, separación |
-| 🔒 Seguridad | 20% | Vulnerabilidades, validación, exposición |
-| 🧪 Testing | 15% | Cobertura, calidad de tests |
-| 📚 Documentación | 10% | Comentarios, README, docs |
-| ⚡ Performance | 10% | Optimización, eficiencia |
-
-### Escala de Calificación
-
-- **9-10**: Excelente - Aprobar inmediatamente
-- **7-8**: Bueno - Aprobar con comentarios menores  
-- **5-6**: Mejorable - Solicitar cambios
-- **1-4**: Deficiente - Rechazar y refactorizar
-
-### Modificadores de Puntuación
-
-**Señales de Alerta (descuentos):**
-- Hard-coded secrets: -5 puntos
-- Console.log en producción: -2 puntos
-- Código comentado: -1 punto
-- Magic numbers: -1 punto
-
-**Bonificaciones (hasta +5 puntos):**
-- Refactoring que mejora código: +1 punto
-- Documentación excepcional: +1 punto
-- Tests de casos edge: +1 punto
-- Optimizaciones significativas: +2 puntos
-
-## 🎯 Customización
-
-### Crear Rúbricas Personalizadas
-
-```bash
-# Copiar rúbrica base
-cp rubrics/code-review-rubric.md rubrics/mi-rubrica.md
-
-# Editar según necesidades del proyecto
-# Luego usar con:
-./review.sh --rubric mi-rubrica.md
-```
-
-### Personalizar Templates
-
-```bash
-# Editar template principal
-nano templates/report-template.md
-
-# O crear template personalizado
-cp templates/report-template.md templates/mi-template.md
-```
-
-### Variables de Configuración
-
-Edita `config/config.sh` para personalizar:
-
-```bash
-# Modelo de Claude a usar
-CLAUDE_MODEL="claude-3-5-sonnet-20241022"
-
-# Puntuación mínima para aprobar
-MIN_PASSING_SCORE="7"
-
-# Branch por defecto
-DEFAULT_BRANCH="main"
-
-# Formato de salida
-OUTPUT_FORMAT="markdown"
-```
-
-## 🧪 Testing
-
-### Probar con la Aplicación de Ejemplo
-
-```bash
-# Ir a la aplicación de prueba
-cd ../test-application
-
-# Hacer algunos cambios
-echo "// Test comment" >> src/app/page.tsx
-
-# Commit los cambios
-git add .
-git commit -m "Test changes for PR review"
-
-# Ejecutar revisión
-cd ../scripts
-./review.sh --debug
-```
-
-### Casos de Prueba Recomendados
-
-1. **Sin cambios**: Verificar que maneja repos limpios
-2. **Cambios menores**: Archivos CSS, documentación
-3. **Cambios mayores**: Lógica de negocio, APIs
-4. **Problemas de seguridad**: Credentials hardcodeadas
-5. **Performance**: Queries ineficientes, memory leaks
-
-## 📁 Estructura de Reportes
-
-Los reportes generados incluyen:
-
-- **Resumen ejecutivo** con puntuación final
-- **Puntuación detallada** por categorías
-- **Análisis por archivo** modificado
-- **Señales de alerta** detectadas
-- **Bonificaciones** otorgadas
-- **Recomendaciones específicas** de mejora
-- **Próximos pasos** sugeridos
-
-## 🔧 Troubleshooting
-
-### Problemas Comunes
-
-**Error: CLAUDE_API_KEY no está configurado**
-```bash
-export CLAUDE_API_KEY="tu-clave-api"
-```
-
-**Error: jq no encontrado**
-```bash
-# macOS
-brew install jq
-# Linux
-sudo apt-get install jq
-```
-
-**Error: No hay cambios para revisar**
-```bash
-# Verificar que hay commits después de la branch base
-git log main..HEAD
-```
-
-**Error: Branch objetivo no existe**
-```bash
-# Verificar branches disponibles
-git branch -a
-# Usar branch existente
-./review.sh --branch develop
-```
-
-### Modo Debug
-
-```bash
-# Activar debug para diagnósticos
-./review.sh --debug --verbose
-
-# Ver logs detallados
-DEBUG_MODE=true VERBOSE=true ./review.sh
-```
-
-## 🤖 Integración con GitHub Actions
-
-### Revisión Automática de PRs
-
-El sistema incluye workflows de GitHub Actions para automatizar completamente las revisiones:
-
-```bash
-# Configuración rápida
-1. Agregar CLAUDE_API_KEY como secret en GitHub
-2. Los PRs se revisarán automáticamente
-3. Comentarios y status checks aparecen automáticamente
-```
-
-### Workflows Disponibles
-
-- **🔍 PR Review** - Revisión automática en cada PR
-- **🔧 Setup & Test** - Configuración y pruebas manuales  
-- **🔄 Manual Review** - Revisión manual bajo demanda
-
-Ver [GitHub Setup Guide](.github/SETUP.md) para configuración completa.
-
-## 🚀 Roadmap
-
-### ✅ Funcionalidades Completadas
-
-- ✅ Integración directa con GitHub APIs
-- ✅ Comentarios automáticos en PRs
-- ✅ Webhooks para revisión automática (GitHub Actions)
-- ✅ Status checks automáticos
-- ✅ Artifacts de reportes
-
-### Próximas Funcionalidades
-
-- [ ] Dashboard web para métricas
-- [ ] Soporte para más lenguajes
-- [ ] Cache de análisis previos
-- [ ] Integración con GitLab
-- [ ] Integración con otros CI/CD pipelines
-
-### Mejoras Planeadas
-
-- [ ] Análisis incremental de cambios
-- [ ] Métricas históricas por desarrollador
-- [ ] Rúbricas específicas por framework
-- [ ] Reportes en múltiples formatos (HTML, PDF)
-- [ ] Configuración por proyecto (.reviewrc)
-
-## 🤝 Contribución
-
-Este es un proyecto en desarrollo activo. Las contribuciones son bienvenidas:
-
-1. Fork del repositorio
-2. Crear branch para feature (`git checkout -b feature/amazing-feature`)
-3. Commit cambios (`git commit -m 'Add amazing feature'`)
-4. Push al branch (`git push origin feature/amazing-feature`)
-5. Crear Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la licencia MIT. Ver archivo LICENSE para detalles.
-
-## 🙋 Soporte
-
-Para preguntas, problemas o sugerencias:
-
-- Crear un issue en el repositorio
-- Revisar la documentación en `/docs`
-- Consultar troubleshooting guide
+MIT License - feel free to use and modify for your projects!
 
 ---
 
-**¡Disfruta revisando código de forma automática! 🚀**
+**⚡ Powered by Claude Code** - Making code reviews faster, more consistent, and more insightful.
+Analyze performance aspects
+
+```
+@claude fix the memory leak in utils.js
+```
+Get a PR with the fix
+
+```
+@claude how should I optimize this database query?
+```
+Get implementation guidance
+
+## 📊 Review Format
+
+Every review follows this structured format:
+
+```markdown
+## 📊 Code Review Summary
+**Final Score: 8.2/10**
+**Status: APPROVED**
+
+### Category Scores  
+- 🔧 Code Quality: 8/10 (Weight: 25%)
+- 🏗️ Architecture: 9/10 (Weight: 20%)
+- 🔒 Security: 7/10 (Weight: 20%)
+- 🧪 Testing: 8/10 (Weight: 15%)
+- 📚 Documentation: 9/10 (Weight: 10%)
+- ⚡ Performance: 8/10 (Weight: 10%)
+
+### Modifiers
+- 🚨 Alert Signals: -1 point
+- ⭐ Bonuses: +0.5 points
+
+## 🔍 Detailed Analysis
+[Category-by-category breakdown...]
+
+## 📋 Recommendations
+1. [Specific actionable items]
+```
+
+## 📋 Requirements
+
+- Node.js 18+
+- Git
+- Claude API Key (Anthropic)
+
+## ⚙️ Installation
+
+```bash
+git clone https://github.com/your-username/pull-request-reviewer.git
+cd pull-request-reviewer
+npm install
+```
+
+## 🎯 Usage
+
+### Setup
+```bash
+cp .env.example .env
+# Add your CLAUDE_API_KEY to .env
+```
+
+### Basic Review
+```bash
+npm run review
+```
+
+### Custom Options
+```bash
+npm run review -- --branch develop --rubric custom-rubric.md --debug
+```
+
+### Development
+```bash
+npm run dev    # Run without compilation
+npm run build  # Compile TypeScript
+```
+
+## 📖 Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-b, --branch` | Target branch to compare | `main` |
+| `-r, --rubric` | Rubric file to use | `code-review-rubric.md` |
+| `-o, --output` | Custom output filename | Auto-generated |
+| `-d, --debug` | Enable debug mode | `false` |
+| `-v, --verbose` | Enable verbose mode | `false` |
+
+## 🤖 GitHub Actions
+
+### Automatic PR Review
+- **Trigger**: Runs on PRs to `main`, `master`, `develop`
+- **Setup**: Add `CLAUDE_API_KEY` to repository secrets
+- **Workflow**: `.github/workflows/pr-review.yml`
+
+### Manual Review
+- **Trigger**: Manual execution from GitHub Actions
+- **Workflow**: `.github/workflows/manual-review.yml`
+
+## 🏗️ Project Structure
+
+```
+├── src/              # TypeScript source code
+├── config/           # Rubrics and templates
+│   ├── rubrics/      # Evaluation rubrics
+│   └── templates/    # Report templates
+├── output/           # Generated reports
+├── .github/          # GitHub Actions workflows
+└── dist/             # Compiled JavaScript
+```
+
+## 📄 License
+
+MIT License

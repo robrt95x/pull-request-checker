@@ -69,24 +69,13 @@ The workflows need these permissions (usually enabled by default):
 5. Click **Run workflow** button
 6. Wait for completion and check results
 
-### Manual Test
+### Testing Manual
 
-1. Create a test branch:
-   ```bash
-   git checkout -b test/pr-reviewer-setup
-   ```
-
-2. Make a small change:
-   ```bash
-   echo "# Test PR Reviewer" >> test-file.md
-   git add test-file.md
-   git commit -m "test: PR Reviewer setup"
-   git push origin test/pr-reviewer-setup
-   ```
-
-3. Create a Pull Request from GitHub UI
-
-4. Check that the workflow runs automatically
+1. Ve a la pestaña **Actions** en tu repositorio
+2. Selecciona el workflow **"🔄 Manual PR Review"** 
+3. Haz clic en **"Run workflow"**
+4. Ingresa el número del PR que quieres revisar
+5. Ejecuta y revisa los resultados
 
 ---
 
@@ -158,9 +147,9 @@ cd scripts
 export CLAUDE_API_KEY="your-key"
 ./review.sh --debug
 
-# Create specific test scenarios
-./create-test-scenario.sh security_issues
-./review.sh
+# Create specific test changes manually
+# Add security issues, performance problems, etc.
+# Then run: ./review.sh
 ```
 
 ---

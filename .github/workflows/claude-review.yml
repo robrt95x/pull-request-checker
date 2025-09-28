@@ -1,0 +1,41 @@
+name: Claude Code Review
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || contains(github.event.comment.body, '@claude') }}
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            @claude Please perform a comprehensive code review of this Pull Request following the detailed rubric in CLAUDE.md.
+            
+            Analyze the changes and provide:
+            - Detailed scoring for each category (Code Quality, Architecture, Security, Testing, Documentation, Performance)
+            - Specific feedback on problematic code sections with line-by-line comments
+            - Actionable recommendations for improvement
+            - Generate a review report as an artifact
+            
+            Use the exact response format specified in CLAUDE.md with structured scoring and constructive feedback.
+          claude_args: |
+            --max-turns 5
+            --model claude-3-5-sonnet-20241022
