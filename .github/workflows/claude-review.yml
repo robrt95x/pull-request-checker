@@ -17,12 +17,25 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
+      actions: read
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
+        
+      - name: Check if this is a new workflow
+        id: workflow-check
+        run: |
+          # Verificar si el workflow existe en la rama base
+          if git show origin/${{ github.base_ref }}:.github/workflows/claude-review.yml >/dev/null 2>&1; then
+            echo "workflow_exists_in_base=true" >> $GITHUB_OUTPUT
+            echo "✅ Workflow exists in base branch"
+          else
+            echo "workflow_exists_in_base=false" >> $GITHUB_OUTPUT
+            echo "⚠️ This is a new workflow file - some permissions may be limited"
+          fi
         
       - name: Get PR Information
         id: pr-info
@@ -76,6 +89,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ steps.pr-info.outputs.pr_number }}
@@ -155,6 +169,41 @@ jobs:
           name: structured-review-pr-${{ steps.pr-info.outputs.pr_number }}
           path: ${{ steps.create-report.outputs.report_file }}
           retention-days: 30
+          
+      - name: Post Review Comment (Fallback)
+        if: steps.workflow-check.outputs.workflow_exists_in_base == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const reviewContent = `${{ steps.claude-review.outputs.response }}`;
+            
+            const commentBody = `## 🤖 Claude Code Review (New Workflow)
+              
+            ${reviewContent}
+            
+            ---
+            
+            📋 **Note**: This is a new workflow file. Some GitHub integration features may be limited until the workflow is merged to the main branch.
+            
+            📋 **Review Artifacts**: Check the "Artifacts" section in this workflow run for downloadable reports.
+            
+            🔧 **Re-review**: Comment \`@claude\` to trigger a new review after merge.
+            
+            *Automated review by Claude AI | [Workflow Run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})*`;
+            
+            // Crear comentario en el PR con el review
+            try {
+              await github.rest.issues.createComment({
+                issue_number: ${{ steps.pr-info.outputs.pr_number }},
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: commentBody
+              });
+              console.log("✅ Posted review comment as fallback");
+            } catch (error) {
+              console.log("⚠️ Could not post fallback comment:", error.message);
+              console.log("📋 Review content available in artifacts and job summary");
+            }
           
       - name: Check Review Score and Status
         uses: actions/github-script@v7
