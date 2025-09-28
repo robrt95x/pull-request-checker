@@ -1,6 +1,92 @@
-# 🔍 Pull Request Reviewer
+# 🔍 Pull Request Reviewer with Claude Code
 
-Automated code review system using Claude AI to analyze pull requests and generate detailed reports based on customizable rubrics.
+Advanced automated code review system using Claude Code GitHub Actions to analyze pull requests and provide detailed feedback based on customizable rubrics.
+
+> **🚀 NEW**: Now integrated with Claude Code GitHub Actions for automatic reviews!
+
+## 🌟 Features
+
+- **🤖 Automatic Reviews**: Runs automatically on every PR
+- **💬 Interactive**: Respond to `@claude` mentions for instant help  
+- **📊 Structured Scoring**: Detailed rubric-based analysis (1-10 scale)
+- **🔒 Security Focus**: Specialized security vulnerability detection
+- **⚡ Performance Analysis**: Code performance and optimization suggestions  
+- **📚 Documentation Checks**: Ensures proper code documentation
+- **🏗️ Architecture Review**: Evaluates design patterns and structure
+- **🧪 Testing Coverage**: Analyzes test quality and coverage
+
+## 🚀 Quick Start
+
+### 1. Setup (One-time)
+```bash
+# Install Claude GitHub App to your repository
+# Visit: https://github.com/apps/claude
+
+# Add your Claude API key to repository secrets:
+# Repository Settings → Secrets → New secret
+# Name: ANTHROPIC_API_KEY
+# Value: your-claude-api-key
+```
+
+### 2. Use Automatic Reviews
+- Create or update any Pull Request
+- Claude automatically analyzes and comments with detailed review
+- Get instant feedback with scores and recommendations
+
+### 3. Interactive Commands
+Comment on any PR or issue:
+```
+@claude /review
+```
+Get complete code review with detailed scoring
+
+```
+@claude /security
+```
+Focus on security analysis
+
+```
+@claude /performance  
+```
+Analyze performance aspects
+
+```
+@claude fix the memory leak in utils.js
+```
+Get a PR with the fix
+
+```
+@claude how should I optimize this database query?
+```
+Get implementation guidance
+
+## 📊 Review Format
+
+Every review follows this structured format:
+
+```markdown
+## 📊 Code Review Summary
+**Final Score: 8.2/10**
+**Status: APPROVED**
+
+### Category Scores  
+- 🔧 Code Quality: 8/10 (Weight: 25%)
+- 🏗️ Architecture: 9/10 (Weight: 20%)
+- 🔒 Security: 7/10 (Weight: 20%)
+- 🧪 Testing: 8/10 (Weight: 15%)
+- 📚 Documentation: 9/10 (Weight: 10%)
+- ⚡ Performance: 8/10 (Weight: 10%)
+
+### Modifiers
+- 🚨 Alert Signals: -1 point
+- ⭐ Bonuses: +0.5 points
+
+## 🔍 Detailed Analysis
+[Category-by-category breakdown...]
+
+## 📋 Recommendations
+1. [Specific actionable items]
+```
 
 ## 📋 Requirements
 

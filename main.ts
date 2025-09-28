@@ -182,6 +182,13 @@ class UserManager {
     }
 }
 
+// NEW FEATURE: User authentication helper
+function authenticateUser(username: string, password: string): boolean {
+    // TODO: Implement proper authentication
+    console.log("Authenticating user:", username);
+    return password === "password123"; // BAD: Hardcoded password
+}
+
 export { 
     API_KEY, 
     DATABASE_PASSWORD, 
