@@ -23,7 +23,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Fetch full history for better context
         
       - name: Check if this is a new workflow
         id: workflow-check
@@ -37,7 +37,7 @@ jobs:
             echo "⚠️ This is a new workflow file - some permissions may be limited"
           fi
         
-      - name: Get PR Information
+      - name: Get PR Information and Diff
         id: pr-info
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
@@ -46,6 +46,16 @@ jobs:
             echo "base_branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
             echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
             echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+            
+            # Get PR diff using GitHub CLI (Opción 3 - La mejor!)
+            echo "📊 Getting PR diff using GitHub CLI..."
+            gh pr diff ${{ github.event.pull_request.number }} > pr_diff.txt
+            echo "✅ PR diff saved to pr_diff.txt"
+            
+            # Get PR details for additional context
+            gh pr view ${{ github.event.pull_request.number }} --json title,author,body,additions,deletions,changedFiles > pr_details.json
+            echo "✅ PR details saved to pr_details.json"
+            
           elif [ "${{ github.event_name }}" = "issue_comment" ]; then
             # Para comentarios, obtener info del PR asociado
             if [ -n "${{ github.event.issue.pull_request.url }}" ]; then
@@ -58,6 +68,13 @@ jobs:
               echo "base_branch=$(echo '$PR_INFO' | jq -r '.base.ref')" >> $GITHUB_OUTPUT
               echo "pr_title=$(echo '$PR_INFO' | jq -r '.title')" >> $GITHUB_OUTPUT
               echo "pr_author=$(echo '$PR_INFO' | jq -r '.user.login')" >> $GITHUB_OUTPUT
+              
+              # Get PR diff for comment-triggered reviews
+              echo "📊 Getting PR diff for comment-triggered review..."
+              gh pr diff $PR_NUMBER > pr_diff.txt
+              gh pr view $PR_NUMBER --json title,author,body,additions,deletions,changedFiles > pr_details.json
+              echo "✅ PR diff and details saved"
+              
             else
               echo "❌ Comment is not on a pull request"
               exit 1
@@ -84,6 +101,27 @@ jobs:
             echo "⚠️ CLAUDE.md not found, using default prompts"
           fi
         
+      - name: Verify PR Data
+        id: verify-data
+        run: |
+          echo "🔍 Verifying PR data availability..."
+          
+          # Show what we have for debugging
+          echo "📊 Available files:"
+          ls -la *.txt *.json 2>/dev/null || echo "No data files found"
+          
+          if [ -f pr_diff.txt ]; then
+            echo "✅ PR diff available ($(wc -l < pr_diff.txt) lines)"
+          else
+            echo "⚠️ PR diff not found"
+          fi
+          
+          if [ -f pr_details.json ]; then
+            echo "✅ PR details available"
+          else
+            echo "⚠️ PR details not found"
+          fi
+        
       - name: Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
@@ -91,12 +129,20 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ steps.pr-info.outputs.pr_number }}
-            BRANCH: ${{ steps.pr-info.outputs.branch_name }}
-            BASE: ${{ steps.pr-info.outputs.base_branch }}
-            
             Please conduct a thorough code review of this pull request using the detailed rubric provided in your system prompt (CLAUDE.md).
+            
+            📊 Available data:
+            - Use: gh pr diff ${{ steps.pr-info.outputs.pr_number }} (to get the complete diff)
+            - Use: gh pr view ${{ steps.pr-info.outputs.pr_number }} (for PR metadata)
+            - Files pr_diff.txt and pr_details.json may be available in working directory
+            
+            Follow the CLAUDE.md format exactly:
+            - Start with "## 📊 Code Review Summary"
+            - Include "Final Score: X/10" 
+            - Include "Status: [APPROVED/REQUIRES CHANGES/NEEDS MAJOR REVISION]"
+            - Provide category scores and analysis
+            - Apply Alert Signal deductions as specified
+            - Give actionable recommendations
             
             Focus on the evaluation categories specified in CLAUDE.md:
             1. Code Quality (25% weight)
@@ -120,7 +166,7 @@ jobs:
             
             The PR branch is already checked out in the current working directory.
           claude_args: |
-            --max-turns 5
+            --max-turns 10
             --model claude-3-5-sonnet-20241022
             --system-prompt-file CLAUDE.md
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Write,Edit"
