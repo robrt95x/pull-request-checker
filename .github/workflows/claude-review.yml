@@ -8,35 +8,243 @@ on:
     types: [created]
 
 jobs:
-  review:
+  claude-review:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || contains(github.event.comment.body, '@claude') }}
+    
     permissions:
       contents: read
       pull-requests: write
+      issues: write
       id-token: write
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 1
-
-      - uses: anthropics/claude-code-action@v1
+          fetch-depth: 0
+        
+      - name: Get PR Information
+        id: pr-info
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "pr_number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+            echo "branch_name=${{ github.head_ref }}" >> $GITHUB_OUTPUT
+            echo "base_branch=${{ github.base_ref }}" >> $GITHUB_OUTPUT
+            echo "pr_title=${{ github.event.pull_request.title }}" >> $GITHUB_OUTPUT
+            echo "pr_author=${{ github.event.pull_request.user.login }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "issue_comment" ]; then
+            # Para comentarios, obtener info del PR asociado
+            if [ -n "${{ github.event.issue.pull_request.url }}" ]; then
+              PR_NUMBER="${{ github.event.issue.number }}"
+              echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+              
+              # Obtener información adicional del PR usando la API
+              PR_INFO=$(gh api repos/${{ github.repository }}/pulls/$PR_NUMBER)
+              echo "branch_name=$(echo '$PR_INFO' | jq -r '.head.ref')" >> $GITHUB_OUTPUT
+              echo "base_branch=$(echo '$PR_INFO' | jq -r '.base.ref')" >> $GITHUB_OUTPUT
+              echo "pr_title=$(echo '$PR_INFO' | jq -r '.title')" >> $GITHUB_OUTPUT
+              echo "pr_author=$(echo '$PR_INFO' | jq -r '.user.login')" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Comment is not on a pull request"
+              exit 1
+            fi
+          else
+            echo "pr_number=" >> $GITHUB_OUTPUT
+            echo "branch_name=main" >> $GITHUB_OUTPUT
+            echo "base_branch=main" >> $GITHUB_OUTPUT
+            echo "pr_title=Manual Review" >> $GITHUB_OUTPUT
+            echo "pr_author=unknown" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+      - name: Load Claude Configuration
+        id: claude-config
+        run: |
+          # Verificar si existe CLAUDE.md y cargarlo
+          if [ -f "CLAUDE.md" ]; then
+            echo "claude_prompt_exists=true" >> $GITHUB_OUTPUT
+            echo "Using CLAUDE.md configuration file"
+          else
+            echo "claude_prompt_exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ CLAUDE.md not found, using default prompts"
+          fi
+        
+      - name: Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
-
-            Please review this pull request with a focus on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Security implications
-            - Performance considerations
-
-            Note: The PR branch is already checked out in the current working directory.
-
-            Use `gh pr comment` for top-level feedback.
-            Use `mcp__github_inline_comment__create_inline_comment` to highlight specific code issues.
-            Only post GitHub comments - don't submit review text as messages.
-
+            PR NUMBER: ${{ steps.pr-info.outputs.pr_number }}
+            BRANCH: ${{ steps.pr-info.outputs.branch_name }}
+            BASE: ${{ steps.pr-info.outputs.base_branch }}
+            
+            Please conduct a thorough code review of this pull request using the detailed rubric provided in your system prompt (CLAUDE.md).
+            
+            Focus on the evaluation categories specified in CLAUDE.md:
+            1. Code Quality (25% weight)
+            2. Architecture and Design (20% weight)  
+            3. Security (20% weight)
+            4. Testing (15% weight)
+            5. Documentation (10% weight)
+            6. Performance (10% weight)
+            
+            Also check for Alert Signals that require point deductions and any Bonuses that should be awarded.
+            
+            IMPORTANT: Follow the exact response format specified in CLAUDE.md:
+            - Start with "## 📊 Code Review Summary"
+            - Include "Final Score: X/10" 
+            - Include "Status: [APPROVED/REQUIRES CHANGES/NEEDS MAJOR REVISION]"
+            - Provide category scores with detailed analysis
+            - List critical issues if any
+            - Give specific actionable recommendations
+            
+            Use inline comments for specific code issues and post your comprehensive review summary as a top-level PR comment.
+            
+            The PR branch is already checked out in the current working directory.
           claude_args: |
-            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"
+            --max-turns 5
+            --model claude-3-5-sonnet-20241022
+            --system-prompt-file CLAUDE.md
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Write,Edit"
+            
+      - name: Save Review as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-review-report-pr-${{ steps.pr-info.outputs.pr_number }}
+          path: |
+            claude-review-*.md
+            review-*.md
+            **/claude-output*.md
+          retention-days: 30
+          if-no-files-found: warn
+          
+      - name: Create Review Report File
+        id: create-report
+        run: |
+          # Crear archivo de reporte estructurado
+          REPORT_FILE="code-review-pr-${{ steps.pr-info.outputs.pr_number }}-$(date +%Y%m%d-%H%M%S).md"
+          
+          cat > "$REPORT_FILE" << EOF
+          # Code Review Report - PR #${{ steps.pr-info.outputs.pr_number }}
+          
+          **Branch**: ${{ steps.pr-info.outputs.branch_name }}
+          **Base**: ${{ steps.pr-info.outputs.base_branch }}
+          **Title**: ${{ steps.pr-info.outputs.pr_title }}
+          **Author**: ${{ steps.pr-info.outputs.pr_author }}
+          **Date**: $(date)
+          **Reviewer**: Claude AI
+          
+          ---
+          
+          ${{ steps.claude-review.outputs.response }}
+          
+          ---
+          *Generated by Claude Code Review Action*
+          EOF
+          
+          echo "report_file=$REPORT_FILE" >> $GITHUB_OUTPUT
+          echo "Report saved as: $REPORT_FILE"
+          
+      - name: Upload Structured Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: structured-review-pr-${{ steps.pr-info.outputs.pr_number }}
+          path: ${{ steps.create-report.outputs.report_file }}
+          retention-days: 30
+          
+      - name: Check Review Score and Status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const review = `${{ steps.claude-review.outputs.response }}`;
+            
+            // Buscar score en el review con múltiples formatos posibles
+            const scorePatterns = [
+              /Final Score:\s*(\d+(?:\.\d+)?)\/10/i,
+              /Final Score:\s*(\d+(?:\.\d+)?)/i,
+              /\*\*Final Score:\s*(\d+(?:\.\d+)?)\/10\*\*/i,
+              /Score:\s*(\d+(?:\.\d+)?)\/10/i
+            ];
+            
+            const statusPatterns = [
+              /Status:\s*\[([^\]]+)\]/i,
+              /\*\*Status:\s*\[([^\]]+)\]\*\*/i,
+              /(APPROVED|REQUIRES CHANGES|NEEDS MAJOR REVISION)/i
+            ];
+            
+            let score = null;
+            let status = 'UNKNOWN';
+            
+            // Intentar encontrar el score con diferentes patrones
+            for (const pattern of scorePatterns) {
+              const match = review.match(pattern);
+              if (match) {
+                score = parseFloat(match[1]);
+                break;
+              }
+            }
+            
+            // Intentar encontrar el status con diferentes patrones
+            for (const pattern of statusPatterns) {
+              const match = review.match(pattern);
+              if (match) {
+                status = match[1];
+                break;
+              }
+            }
+            
+            if (score !== null) {
+              console.log(`📊 Review Score: ${score}/10`);
+              console.log(`📋 Status: ${status}`);
+              
+              // Crear summary
+              core.summary
+                .addHeading('Code Review Results', 2)
+                .addTable([
+                  [{data: 'Metric', header: true}, {data: 'Value', header: true}],
+                  ['Score', `${score}/10`],
+                  ['Status', status],
+                  ['PR Number', '${{ steps.pr-info.outputs.pr_number }}'],
+                  ['Branch', '${{ steps.pr-info.outputs.branch_name }}']
+                ])
+                .write();
+              
+              // Determinar si aprobar o fallar
+              if (score < 7) {
+                core.setFailed(`❌ Code review failed with score ${score}/10. Minimum required: 7/10`);
+              } else {
+                console.log(`✅ Code review passed with score ${score}/10`);
+              }
+              
+              // Agregar labels al PR basado en el score
+              if (context.payload.pull_request) {
+                const labels = [];
+                if (score >= 9) labels.push('code-quality-excellent');
+                else if (score >= 7) labels.push('code-quality-good');
+                else labels.push('code-quality-needs-improvement');
+                
+                try {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: ${{ steps.pr-info.outputs.pr_number }},
+                    labels: labels
+                  });
+                } catch (error) {
+                  console.log('Could not add labels:', error.message);
+                }
+              }
+              
+            } else {
+              console.log('⚠️ Could not extract score from review');
+              console.log('Review content preview:', review.substring(0, 500));
+              core.summary
+                .addHeading('Code Review Results', 2)
+                .addRaw('Could not extract numerical score from review. Please check the review format.')
+                .addDetails('Review Preview', review.substring(0, 1000))
+                .write();
+            }
