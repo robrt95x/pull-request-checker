@@ -55,7 +55,7 @@ jobs:
             
             *Automated review by Claude AI*"
             
-            Remember: Include specific line numbers for each feedback item in check-results.md
+            Remember: Include specific line numbers for each feedback item in check-results.md, Using Language: Spanish
           claude_args: |
             --max-turns 10
             --model claude-3-5-sonnet-20241022
