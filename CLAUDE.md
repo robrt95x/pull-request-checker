@@ -23,13 +23,6 @@ Your check-results.md file must follow this EXACT structure:
 - **Documentation (10%)**: Comments and docs
 - **Performance (10%)**: Efficiency and optimization
 
-## Alert Signals (Deductions)
-- eval() usage: -8 points
-- Hard-coded credentials: -5 points
-- Memory leaks: -5 points
-- Missing error handling: -3 points
-- SQL injection: -8 points
-
 ## Response Format (MANDATORY)
 ```
 ## File Format for check-results.md
