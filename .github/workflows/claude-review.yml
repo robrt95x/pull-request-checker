@@ -44,10 +44,18 @@ jobs:
             1. Run: gh pr diff ${{ steps.pr-info.outputs.pr_number }}
             2. Run: gh pr view ${{ steps.pr-info.outputs.pr_number }}
             3. Review the code using CLAUDE.md rubric
-            4. Create a file called "check-results.md" with your complete analysis
-            5. Post a summary comment using: gh pr comment ${{ steps.pr-info.outputs.pr_number }} --body "$(cat check-results.md | head -20)"
+            4. Create "check-results.md" with complete analysis (include line numbers for each feedback)
+            5. Post summary comment with artifact link using this format:
             
-            The check-results.md file must follow the exact format from CLAUDE.md.
+            gh pr comment ${{ steps.pr-info.outputs.pr_number }} --body "$(cat check-results.md | head -20)
+
+            ---
+            📋 **Complete Analysis**: [Download check-results.md](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            🔍 **View Artifacts**: Click 'Summary' → 'Artifacts' → 'check-results-pr-${{ steps.pr-info.outputs.pr_number }}'
+            
+            *Automated review by Claude AI*"
+            
+            Remember: Include specific line numbers for each feedback item in check-results.md
           claude_args: |
             --max-turns 10
             --model claude-3-5-sonnet-20241022

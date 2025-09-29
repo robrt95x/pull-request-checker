@@ -3,8 +3,14 @@
 ## Your Task
 1. Run: `gh pr diff [PR_NUMBER]` and `gh pr view [PR_NUMBER]`
 2. Review code using the rubric below
-3. Create file: `check-results.md` with your complete analysis
-4. Post PR comment with summary using: `gh pr comment [PR_NUMBER] --body "$(head -20 check-results.md)"`
+3. Create file: `check-results.md` with complete analysis (MUST include line numbers)
+4. Post PR comment with summary + artifact download link
+
+## CRITICAL: Line Number Requirements
+- For EVERY feedback item, specify the exact line number(s)
+- Use format: **Line X**: [feedback]  
+- For multi-line issues: **Lines X-Y**: [feedback]
+- Reference line numbers from the diff output
 
 ## File Format for check-results.md
 Your check-results.md file must follow this EXACT structure:
@@ -26,6 +32,10 @@ Your check-results.md file must follow this EXACT structure:
 
 ## Response Format (MANDATORY)
 ```
+## File Format for check-results.md
+Your check-results.md file must follow this EXACT structure:
+
+```
 ## 📊 Code Review Summary
 
 **Final Score: X.X/10**
@@ -46,6 +56,22 @@ Your check-results.md file must follow this EXACT structure:
 ### Recommendations
 1. [Specific action item]
 2. [Another action item]
+
+## 📁 Detailed Feedback by File
+
+### src/filename.ext
+**Line X**: Issue description and recommendation
+**Line Y**: Another issue with specific guidance
+**Lines X-Y**: Multi-line issue explanation
+
+### another-file.ext
+**Line Z**: Specific feedback with line reference
+```
+
+For each feedback item, ALWAYS include:
+- **Line number(s)** where the issue occurs
+- **Specific description** of the problem
+- **Clear recommendation** for improvement
 ```
 
 ## Important Notes
