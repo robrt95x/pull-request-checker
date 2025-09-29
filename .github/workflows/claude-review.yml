@@ -43,9 +43,17 @@ jobs:
             
             1. Run: gh pr diff ${{ steps.pr-info.outputs.pr_number }}
             2. Run: gh pr view ${{ steps.pr-info.outputs.pr_number }}
-            3. Review the code using CLAUDE.md rubric
-            4. Create "check-results.md" with complete analysis (include line numbers for each feedback)
-            5. Post summary comment with artifact link using this format:
+            3. **CRITICALLY ANALYZE THE DIFF OUTPUT**:
+               - Lines starting with '+' are NEW code being ADDED - FOCUS HERE
+               - Lines starting with '-' are OLD code being REMOVED - Verify appropriateness  
+               - Lines with no prefix are CONTEXT (existing unchanged code) - Usually skip unless relevant
+               - Use @@ markers to identify correct line numbers in the NEW file version
+            4. Review the code using CLAUDE.md rubric (prioritize NEW/CHANGED code only)
+            5. Create "check-results.md" with complete analysis:
+               - Include line numbers from NEW file version (after PR merge)
+               - Mark each issue as (added), (removed), or (modified)
+               - Focus feedback on actual changes, not existing code
+            6. Post summary comment with artifact link using this format:
             
             gh pr comment ${{ steps.pr-info.outputs.pr_number }} --body "$(cat check-results.md | head -20)
 
@@ -55,7 +63,12 @@ jobs:
             
             *Automated review by Claude AI*"
             
-            Remember: Include specific line numbers for each feedback item in check-results.md, Using Language: Spanish
+            CRITICAL REMINDERS:
+            - Only analyze code with '+' (added) and '-' (removed) prefixes in diff
+            - Do NOT review unchanged existing code (context lines)
+            - Reference line numbers from the NEW file version (after merge)
+            - Mark each feedback item as (added), (removed), or (modified)
+            - Using Language: Spanish
           claude_args: |
             --max-turns 10
             --model claude-3-5-sonnet-20241022
