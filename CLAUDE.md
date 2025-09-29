@@ -79,3 +79,4 @@ For each feedback item, ALWAYS include:
 - Post only a summary (first 20 lines) as PR comment
 - NO individual file comments or inline comments
 - Use exact format above for consistency
+- Report Language: Spanish
