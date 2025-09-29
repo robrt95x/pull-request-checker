@@ -2,7 +2,7 @@
 
 ## Your Task
 1. Run: `gh pr diff [PR_NUMBER]` and `gh pr view [PR_NUMBER]`
-2. Review code using the rubric below
+2. Review code using the rubric below (differ from added and removed code)
 3. Create file: `check-results.md` with complete analysis (MUST include line numbers)
 4. Post PR comment with summary + artifact download link
 
@@ -22,13 +22,6 @@ Your check-results.md file must follow this EXACT structure:
 - **Testing (15%)**: Coverage and quality
 - **Documentation (10%)**: Comments and docs
 - **Performance (10%)**: Efficiency and optimization
-
-## Alert Signals (Deductions)
-- eval() usage: -8 points
-- Hard-coded credentials: -5 points
-- Memory leaks: -5 points
-- Missing error handling: -3 points
-- SQL injection: -8 points
 
 ## Response Format (MANDATORY)
 ```
