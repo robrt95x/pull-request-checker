@@ -2,7 +2,7 @@
 
 ## Your Task
 1. Run: `gh pr diff [PR_NUMBER]` and `gh pr view [PR_NUMBER]`
-2. Review code using the rubric below
+2. Review code using the rubric below (differ from added and removed code)
 3. Create file: `check-results.md` with complete analysis (MUST include line numbers)
 4. Post PR comment with summary + artifact download link
 
